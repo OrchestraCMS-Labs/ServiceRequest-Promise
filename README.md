@@ -13,6 +13,52 @@ Because they return a promise, unlike `doServiceRequest()`, their parameters do 
 If the solution supports only modern browsers, including Edge, using `doServiceRequestAsPromise()` is likely preferred.
 jQuery promises are similar, but not equivalent, to ECMAScript promises and have different methods and syntax.
 
+````
+ // p will be a Promise based on a request against the stg_BlogSupport service class with the action 'getMostRecent'
+ var p = doServiceRequestAsPromise({
+             service: 'stg_BlogSupport',           // an Apex class that implements cms.ServiceInterface
+             action: 'getMostRecent'
+         });
+
+// now, do subsequent Promise handling of p as required
+p.then(handleRecentBlogResponse);
+
+Promise.all([p, q]).then(handlerForWhenBothPAndQAreFulfilled);
+
+
+// of course, there may be no need to save the returned Promise in a variable; just handle it as required
+doServiceRequestAsPromise({    // returns a promise whose request required DML to modify data
+        action: 'postLiked',
+        userId: CMS.userid,
+        postId: $post.data('contentId')
+    },
+    'ReadWrite'          // true or any string with 'write' in it allows the request to update Salesforce records
+ ).then(handleLikingConfirmation)
+ .catch(handleError);
+````
+
+## doServiceRequestAs…(params, write)
+
+**@param params** 
+
+- JavaScript object whose properties must include provide the default values for subsequent calls to the
+promise-delivering returned function
+	- the property “service” must be provided
+        - this must be the name of an Apex class that implements cms.ServiceInterface
+	- the string property “action” must be provided
+	- additional properties as required by the Execute Request method in the service class
+
+**@param write**
+
+- defaults to false (DML write operations _not_ allowed)
+- to enable DML write operations, this parameter must be `true` or, for self-documenting code, 
+a string that contains “write” (in any letter case)
+
+**@return** 
+
+- a Promise or jQuery Deferred’s promise object, depending on which doServiceRequestAs… function was called
+
+
 ## createServiceRequestAsPromise(), createServiceRequestAsDeferred()
 
 The functions `createServiceRequestAsPromise()` and `createServiceRequestAsDeferred()` _return a function_ that the 
@@ -81,30 +127,8 @@ a string that contains “write” (in any letter case)
         - returns a Promise or jQuery Deferred’s promise object, depending on which createServiceRequestAs… function was called
 
 
-## doServiceRequestAs…(params, write)
-
-**@param params** 
-
-- JavaScript object whose properties must include provide the default values for subsequent calls to the
-promise-delivering returned function
-	- the property “service” must be provided
-        - this must be the name of an Apex class that implements cms.ServiceInterface
-	- the string property “action” must be provided
-	- additional properties as required by the Execute Request method in the service class
-
-**@param write**
-
-- defaults to false (DML write operations _not_ allowed)
-- to enable DML write operations, this parameter must be `true` or, for self-documenting code, 
-a string that contains “write” (in any letter case)
-
-**@return** 
-
-- a Promise or jQuery Deferred’s promise object, depending on which doServiceRequestAs… function was called
-
-### Resolving a Promise
-If the service request’s response was valid JSON it will be deserialized into a JavaScript object (unlike `doServiceRequest`
-itself which does _not_ do JSON parsing). 
+## Resolving a Service Request Promise
+If the service request’s response was valid JSON it will be deserialized into a JavaScript object (unlike `doServiceRequest` which does _not_ do JSON parsing). 
 This request response (which may now be a JavaScript object) is used to _resolve the promise_, 
 which means that the response will be the single parameter passed to “then” methods attached to the promise.
 For example,
